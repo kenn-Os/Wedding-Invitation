@@ -375,7 +375,7 @@ export default function DashboardPage() {
                       placeholder="Search guests..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="wedding-input pl-9"
+                      className="wedding-input pl-11"
                     />
                   </div>
                   {/* Filter */}
