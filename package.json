@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "clean": "rd /s /q .next",
+    "clean": "rf /s /q .next",
     "predev": "npm run clean",
     "prebuild": "npm run clean",
     "build": "next build",
