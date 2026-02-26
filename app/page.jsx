@@ -168,9 +168,9 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <p className="text-center font-sans text-xs text-warmgray mt-6 tracking-wide">
+          {/* <p className="text-center font-sans text-xs text-warmgray mt-6 tracking-wide">
             [Replace these images with your own couple photos]
-          </p>
+          </p> */}
         </div>
       </section>
 

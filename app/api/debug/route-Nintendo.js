@@ -8,7 +8,15 @@ export const dynamic = 'force-dynamic';
 // DELETE THIS FILE before going to production, or at least add a secret check.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const secret = searchParams.get('secret');
+
+  // Simple security check — you must visit /api/debug?secret=wedding-debug-123
+  if (secret !== 'wedding-debug-123' && process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const report = {
     timestamp: new Date().toISOString(),
     environment: {
