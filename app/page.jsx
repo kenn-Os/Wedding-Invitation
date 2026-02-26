@@ -157,6 +157,8 @@ export default function HomePage() {
               'photo-1519741497674-611481863552',
               'photo-1511285560929-80b456503681',
               'photo-1537633552985-df8429e8048b',
+              'photo-1537633552985-df8429e8048b',
+              'photo-1537633552985-df8429e8048b',
             ].map((id, i) => (
               <div key={i} className={`relative overflow-hidden ${i === 0 ? 'col-span-2 row-span-2' : ''}`} style={{ minHeight: i === 0 ? '320px' : '160px' }}>
                 <Image
