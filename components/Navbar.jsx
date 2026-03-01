@@ -63,7 +63,7 @@ export default function Navbar({ variant = 'transparent' }) {
     { label: 'Home', href: '/' },
     { label: 'Our Story', href: '/#story' },
     { label: 'Details', href: '/#details' },
-    { label: 'Gallery', href: '/#gallery' },
+    // { label: 'Gallery', href: '/#gallery' },
   ];
 
   return (

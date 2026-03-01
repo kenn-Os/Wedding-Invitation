@@ -32,7 +32,7 @@ export default function HomePage() {
 
         {/* Content */}
         <div className="relative z-10 text-center text-white px-6 animate-fade-in pointer-events-auto">
-          <p className="font-sans text-xs tracking-[0.5em] uppercase text-blush/90 mb-4 font-light">
+          <p className="font-sans text-xs tracking-[0.5em] uppercase text-blush/90 mb-10 font-light">
             Together with their families
           </p>
           
@@ -71,10 +71,10 @@ export default function HomePage() {
           </div>
 
           {/* Scroll indicator */}
-          <div className="absolute left-1/2 -bottom-24 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
+          {/* <div className="absolute left-1/2 -bottom-24 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
             <div className="w-px h-8 bg-white/50" />
             <div className="w-1 h-1 rounded-full bg-white/70" />
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -142,7 +142,7 @@ export default function HomePage() {
       </section>
 
       {/* ── GALLERY SECTION (Placeholder) ── */}
-      <section id="gallery" className="py-24 px-6">
+      {/* <section id="gallery" className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <p className="font-script text-5xl text-champagne mb-2">Gallery</p>
@@ -170,11 +170,11 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          {/* <p className="text-center font-sans text-xs text-warmgray mt-6 tracking-wide">
+          <p className="text-center font-sans text-xs text-warmgray mt-6 tracking-wide">
             [Replace these images with your own couple photos]
-          </p> */}
+          </p>
         </div>
-      </section>
+      </section> */}
 
       {/* ── FOOTER ── */}
       <footer className="bg-deeprose py-12 px-6 text-center">
