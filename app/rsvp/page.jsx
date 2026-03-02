@@ -1,26 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Navbar from '@/components/Navbar';
-import { Heart, Plus, Minus, Check, AlertCircle, Loader2, UserPlus } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import {
+  Heart,
+  Plus,
+  Minus,
+  Check,
+  AlertCircle,
+  Loader2,
+  UserPlus,
+  Calendar,
+} from "lucide-react";
 
 export default function RSVPPage() {
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
 
-  const [step, setStep] = useState('loading'); // loading | invalid | form | success | already_submitted
+  const [step, setStep] = useState("loading"); // loading | invalid | form | success | already_submitted
   const [invitee, setInvitee] = useState(null);
-  const [attending, setAttending] = useState(null); // true | false
-  const [submitterName, setSubmitterName] = useState('');
+  const [attending, setAttending] = useState(null);
+  const [submitterName, setSubmitterName] = useState("");
   const [guestCount, setGuestCount] = useState(0);
   const [additionalGuests, setAdditionalGuests] = useState([]);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const verifyToken = useCallback(async () => {
     if (!token) {
-      setStep('invalid');
+      setStep("invalid");
       return;
     }
     try {
@@ -29,16 +38,16 @@ export default function RSVPPage() {
       if (data.valid) {
         setInvitee(data.invitee);
         if (data.already_submitted) {
-          setStep('already_submitted');
+          setStep("already_submitted");
         } else {
-          setSubmitterName(data.invitee.name || '');
-          setStep('form');
+          setSubmitterName(data.invitee.name || "");
+          setStep("form");
         }
       } else {
-        setStep('invalid');
+        setStep("invalid");
       }
     } catch {
-      setStep('invalid');
+      setStep("invalid");
     }
   }, [token]);
 
@@ -50,7 +59,7 @@ export default function RSVPPage() {
     const newCount = Math.max(0, Math.min(10, count));
     setGuestCount(newCount);
     const updated = [...additionalGuests];
-    while (updated.length < newCount) updated.push('');
+    while (updated.length < newCount) updated.push("");
     updated.length = newCount;
     setAdditionalGuests(updated);
   };
@@ -64,21 +73,21 @@ export default function RSVPPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!submitterName.trim()) {
-      setError('Please enter your full name.');
+      setError("Please enter your full name.");
       return;
     }
     if (attending && additionalGuests.some((g) => !g.trim())) {
-      setError('Please enter the full name of each additional guest.');
+      setError("Please enter the full name of each additional guest.");
       return;
     }
 
-    setError('');
+    setError("");
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/rsvp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
           submitter_name: submitterName.trim(),
@@ -89,38 +98,46 @@ export default function RSVPPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setStep('success');
+        setStep("success");
       } else {
-        setError(data.error || 'Something went wrong. Please try again.');
+        setError(data.error || "Something went wrong. Please try again.");
       }
     } catch {
-      setError('Network error. Please check your connection and try again.');
+      setError("Network error. Please check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   // ── LOADING ──
-  if (step === 'loading') {
+  if (step === "loading") {
     return (
       <main className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
-          <Loader2 size={32} className="animate-spin text-champagne mx-auto mb-4" />
-          <p className="font-display text-lg italic text-deeprose font-light">Verifying your invitation…</p>
+          <Loader2
+            size={32}
+            className="animate-spin text-champagne mx-auto mb-4"
+          />
+          <p className="font-display text-lg italic text-deeprose font-light">
+            Verifying your invitation…
+          </p>
         </div>
       </main>
     );
   }
 
   // ── INVALID TOKEN ──
-  if (step === 'invalid') {
+  if (step === "invalid") {
     return (
       <main className="min-h-screen bg-cream flex items-center justify-center px-6">
         <div className="text-center max-w-md">
           <AlertCircle size={40} className="text-rose mx-auto mb-6" />
-          <h1 className="font-display text-3xl text-deeprose font-light mb-4">Invalid Invitation</h1>
+          <h1 className="font-display text-3xl text-deeprose font-light mb-4">
+            Invalid Invitation
+          </h1>
           <p className="font-sans text-sm text-warmgray leading-relaxed">
-            This invitation link is invalid or has expired. Please use the link sent to you directly, or contact the couple.
+            This invitation link is invalid or has expired. Please use the link
+            sent to you directly, or contact the couple.
           </p>
         </div>
       </main>
@@ -128,7 +145,7 @@ export default function RSVPPage() {
   }
 
   // ── ALREADY SUBMITTED ──
-  if (step === 'already_submitted') {
+  if (step === "already_submitted") {
     return (
       <main className="min-h-screen bg-cream flex items-center justify-center px-6">
         <div className="text-center max-w-md">
@@ -140,7 +157,8 @@ export default function RSVPPage() {
             You&apos;ve already RSVP&apos;d
           </h2>
           <p className="font-sans text-sm text-warmgray">
-            We&apos;ve already received your RSVP. We look forward to celebrating with you!
+            We&apos;ve already received your RSVP. We look forward to
+            celebrating with you!
           </p>
         </div>
       </main>
@@ -148,28 +166,97 @@ export default function RSVPPage() {
   }
 
   // ── SUCCESS ──
-  if (step === 'success') {
+  if (step === "success") {
+    const { WEDDING_DATA } = require("@/lib/constants");
+
+    const handleSaveToCalendar = () => {
+      const { event } = WEDDING_DATA;
+      const icsContent = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Wedding Invitation//EN",
+        "BEGIN:VEVENT",
+        `DTSTART:${event.start}`,
+        `DTEND:${event.end}`,
+        `SUMMARY:${event.title}`,
+        `DESCRIPTION:${event.description}`,
+        `LOCATION:${event.location}`,
+        "END:VEVENT",
+        "END:VCALENDAR",
+      ].join("\n");
+
+      const blob = new Blob([icsContent], {
+        type: "text/calendar;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "wedding-save-the-date.ics");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    };
+
     return (
       <main className="min-h-screen bg-cream flex items-center justify-center px-6">
         <Navbar />
-        <div className="text-center max-w-lg mt-20">
+        <div className="text-center max-w-lg mt-20 scale-in">
           <div className="w-20 h-20 flex items-center justify-center bg-champagne/20 border border-champagne/40 mx-auto mb-8">
             <Heart size={32} className="text-champagne fill-champagne/50" />
           </div>
           <p className="font-script text-6xl text-champagne mb-4">
-            {attending ? 'We\'ll See You There!' : 'We Understand'}
+            {attending ? "We'll See You There!" : "We Understand"}
           </p>
           <div className="ornament my-6">
-            <span className="font-sans text-xs tracking-widest text-warmgray uppercase">RSVP Received</span>
+            <span className="font-sans text-xs tracking-widest text-warmgray uppercase">
+              RSVP Received
+            </span>
           </div>
           <p className="font-display text-xl text-deeprose font-light italic mb-4">
             {attending
-              ? `Thank you, ${submitterName}! Your RSVP has been received. We're so excited to celebrate with you${guestCount > 0 ? ` and your guests` : ''}.`
+              ? `Thank you, ${submitterName}! Your RSVP has been received. We're so excited to celebrate with you${guestCount > 0 ? ` and your guests` : ""}.`
               : `Thank you for letting us know, ${submitterName}. You'll be missed, and we'll be thinking of you.`}
           </p>
+
+          {attending && (
+            <div className="mt-10 mb-8 animate-fade-up">
+              <div className="bg-ivory border border-blush/30 p-8 shadow-sm">
+                <p className="font-sans text-[10px] tracking-[0.2em] uppercase text-champagne mb-4">
+                  Wedding Details
+                </p>
+                <div className="flex flex-col items-center gap-2 mb-6 text-balance">
+                  <p className="font-display text-3xl text-deeprose font-light">
+                    {WEDDING_DATA.date.full}
+                  </p>
+                  <p className="font-sans text-sm text-warmgray">
+                    {WEDDING_DATA.date.time} • {WEDDING_DATA.venue.name}
+                  </p>
+                </div>
+
+                <div className="gold-divider mb-8 opacity-30" />
+
+                <button
+                  onClick={handleSaveToCalendar}
+                  className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-champagne border border-champagne font-sans text-xs tracking-[0.2em] uppercase text-white hover:bg-white hover:text-champagne transition-all duration-300 shadow-md group"
+                >
+                  <Calendar
+                    size={16}
+                    className="group-hover:scale-110 transition-transform"
+                  />
+                  Save to Calendar
+                </button>
+                <p className="font-sans text-[10px] text-warmgray/60 mt-4 italic">
+                  Adds the wedding to your device&apos;s local calendar
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="gold-divider my-8" />
           <p className="font-sans text-sm text-warmgray">
-            Details about the wedding venue and time will be shared soon. Keep an eye on your inbox!
+            Details about the wedding venue and time will be shared soon. Keep
+            an eye on your inbox!
           </p>
         </div>
       </main>
@@ -191,8 +278,12 @@ export default function RSVPPage() {
         >
           <div className="hero-overlay absolute inset-0" />
           <div className="relative h-full flex flex-col items-center justify-center text-white text-center px-6">
-            <p className="font-script text-5xl md:text-6xl mb-2">You&apos;re Invited</p>
-            <p className="font-display italic font-light text-white/80 text-sm">Please respond at your earliest convenience</p>
+            <p className="font-script text-5xl md:text-6xl mb-2">
+              You&apos;re Invited
+            </p>
+            <p className="font-display italic font-light text-white/80 text-sm">
+              Please respond at your earliest convenience
+            </p>
           </div>
         </div>
       </div>
@@ -200,22 +291,24 @@ export default function RSVPPage() {
       {/* Form Card */}
       <div className="max-w-xl mx-auto px-6 py-12 md:py-16">
         <div className="bg-ivory border border-blush/30 p-8 md:p-12 shadow-sm">
-
           {/* Greeting */}
           <div className="text-center mb-10">
-            <p className="font-sans text-xs tracking-widest uppercase text-champagne mb-2">Dear Guest</p>
+            <p className="font-sans text-xs tracking-widest uppercase text-champagne mb-2">
+              Dear Guest
+            </p>
             <h1 className="font-display text-3xl md:text-4xl text-deeprose font-light">
               {invitee?.name ? (
-                <>Kindly RSVP, <em>{invitee.name}</em></>
+                <>
+                  Kindly RSVP, <em>{invitee.name}</em>
+                </>
               ) : (
-                'Kindly RSVP'
+                "Kindly RSVP"
               )}
             </h1>
             <div className="gold-divider mt-6" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-
             {/* Your Name */}
             <div>
               <label className="block font-sans text-xs tracking-widest uppercase text-warmgray mb-2">
@@ -238,8 +331,8 @@ export default function RSVPPage() {
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { value: true, label: 'Joyfully Accepts', emoji: '🥂' },
-                  { value: false, label: 'Regretfully Declines', emoji: '💌' },
+                  { value: true, label: "Joyfully Accepts", emoji: "🥂" },
+                  { value: false, label: "Regretfully Declines", emoji: "💌" },
                 ].map((option) => (
                   <button
                     key={String(option.value)}
@@ -247,8 +340,8 @@ export default function RSVPPage() {
                     onClick={() => setAttending(option.value)}
                     className={`py-4 px-3 border text-center transition-all duration-200 font-sans text-xs tracking-wide ${
                       attending === option.value
-                        ? 'bg-champagne border-champagne text-white'
-                        : 'bg-white border-blush/50 text-warmgray hover:border-champagne'
+                        ? "bg-champagne border-champagne text-white"
+                        : "bg-white border-blush/50 text-warmgray hover:border-champagne"
                     }`}
                   >
                     <div className="text-lg mb-1">{option.emoji}</div>
@@ -265,7 +358,8 @@ export default function RSVPPage() {
                   Additional Guests Accompanying You
                 </label>
                 <p className="font-sans text-xs text-warmgray/80 mb-4">
-                  How many additional people will be joining you? (Not counting yourself)
+                  How many additional people will be joining you? (Not counting
+                  yourself)
                 </p>
 
                 {/* Counter */}
@@ -277,7 +371,9 @@ export default function RSVPPage() {
                   >
                     <Minus size={14} />
                   </button>
-                  <span className="font-display text-3xl text-deeprose w-10 text-center">{guestCount}</span>
+                  <span className="font-display text-3xl text-deeprose w-10 text-center">
+                    {guestCount}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleGuestCountChange(guestCount + 1)}
@@ -286,7 +382,9 @@ export default function RSVPPage() {
                     <Plus size={14} />
                   </button>
                   <span className="font-sans text-xs text-warmgray">
-                    {guestCount === 0 ? 'Just me' : `+${guestCount} guest${guestCount > 1 ? 's' : ''}`}
+                    {guestCount === 0
+                      ? "Just me"
+                      : `+${guestCount} guest${guestCount > 1 ? "s" : ""}`}
                   </span>
                 </div>
 
@@ -302,7 +400,9 @@ export default function RSVPPage() {
                         <input
                           type="text"
                           value={name}
-                          onChange={(e) => handleGuestNameChange(i, e.target.value)}
+                          onChange={(e) =>
+                            handleGuestNameChange(i, e.target.value)
+                          }
                           placeholder={`Guest ${i + 1} full name`}
                           className="wedding-input"
                           required
@@ -334,7 +434,7 @@ export default function RSVPPage() {
                   Submitting…
                 </>
               ) : (
-                'Confirm RSVP'
+                "Confirm RSVP"
               )}
             </button>
           </form>
