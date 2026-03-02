@@ -221,15 +221,27 @@ export default function RSVPPage() {
         }
       }
 
-      // Fallback: Classic download for Desktop/Browsers without Share API
+      // Fallback: Desktop/Browsers without Share API (or non-HTTPS mobile)
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const isMobile =
+        typeof navigator !== "undefined" &&
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // On mobile, navigating directly to the blob often triggers the native "Add to Calendar"
+        // dialog more seamlessly than a forced download.
+        window.location.href = url;
+      } else {
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      // Cleanup
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
     };
 
     return (
