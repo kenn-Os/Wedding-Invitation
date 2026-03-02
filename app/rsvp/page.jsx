@@ -169,13 +169,20 @@ export default function RSVPPage() {
   if (step === "success") {
     const { WEDDING_DATA } = require("@/lib/constants");
 
-    const handleSaveToCalendar = () => {
+    const handleSaveToCalendar = async () => {
       const { event } = WEDDING_DATA;
-      const icsContent = [
+      const fileName = "wedding-save-the-date.ics";
+
+      // RFC 5545 compliant format with CR+LF for global compatibility
+      const icsLines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "PRODID:-//Wedding Invitation//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
         "BEGIN:VEVENT",
+        `UID:wedding-${Date.now()}@wedding-invitation`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
         `DTSTART:${event.start}`,
         `DTEND:${event.end}`,
         `SUMMARY:${event.title}`,
@@ -183,15 +190,42 @@ export default function RSVPPage() {
         `LOCATION:${event.location}`,
         "END:VEVENT",
         "END:VCALENDAR",
-      ].join("\n");
-
+      ];
+      const icsContent = icsLines.join("\r\n");
       const blob = new Blob([icsContent], {
         type: "text/calendar;charset=utf-8",
       });
+
+      // Try native Share API first (Native experience on iOS/Android)
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.share &&
+        navigator.canShare
+      ) {
+        const file = new File([blob], fileName, { type: "text/calendar" });
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: event.title,
+              text: `Save the date for ${event.title}`,
+            });
+            return;
+          } catch (err) {
+            if (err.name !== "AbortError") {
+              console.error("Share failed:", err);
+            } else {
+              return; // User cancelled, don't trigger download
+            }
+          }
+        }
+      }
+
+      // Fallback: Classic download for Desktop/Browsers without Share API
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "wedding-save-the-date.ics");
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -246,18 +280,9 @@ export default function RSVPPage() {
                   />
                   Save to Calendar
                 </button>
-                <p className="font-sans text-[10px] text-warmgray/60 mt-4 italic">
-                  Adds the wedding to your device&apos;s local calendar
-                </p>
               </div>
             </div>
           )}
-
-          <div className="gold-divider my-8" />
-          <p className="font-sans text-sm text-warmgray">
-            Details about the wedding venue and time will be shared soon. Keep
-            an eye on your inbox!
-          </p>
         </div>
       </main>
     );
