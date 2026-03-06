@@ -261,7 +261,7 @@ export default function RSVPPage() {
           </div>
           <p className="font-display text-xl text-deeprose font-light italic mb-4">
             {attending
-              ? `Thank you, ${submitterName}! Your RSVP has been received. We're so excited to celebrate with you${guestCount > 0 ? ` and your guests` : ""}.`
+              ? `Thank you, ${submitterName}! Your RSVP has been received. We're so excited to celebrate with you${guestCount > 0 ? ` and your entourage` : ""}.`
               : `Thank you for letting us know, ${submitterName}. You'll be missed, and we'll be thinking of you.`}
           </p>
 
