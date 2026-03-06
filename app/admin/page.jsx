@@ -106,7 +106,7 @@ export default function AdminPage() {
             href="/"
             className="text-xs text-warmgray hover:underline uppercase tracking-widest"
           >
-            Back to Invitation
+            Back to Home
           </Link>
         </div>
       </div>

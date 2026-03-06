@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // Dashboard data
-  const [invitees, setInvitees] = useState([]);
+  const [guests, setGuests] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
     accepted: 0,
@@ -47,9 +47,9 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Add invitee form
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
+  // Add guest form
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
 
@@ -77,7 +77,7 @@ export default function DashboardPage() {
       const res = await fetch("/api/guests");
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setInvitees(data.invitees || []);
+      setGuests(data.guests || []);
       setStats(
         data.stats || {
           total: 0,
@@ -104,38 +104,41 @@ export default function DashboardPage() {
     await fetchData();
   };
 
-  const handleAddInvitee = async (e) => {
+  const handleAddGuest = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) {
+    if (!guestName.trim()) {
       setAddError("Name is required.");
       return;
     }
     setAddLoading(true);
     setAddError("");
     try {
-      const res = await fetch("/api/invitees", {
+      const res = await fetch("/api/guests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), email: newEmail.trim() }),
+        body: JSON.stringify({
+          name: guestName.trim(),
+          email: guestEmail.trim(),
+        }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
-      setNewName("");
-      setNewEmail("");
+      setGuestName("");
+      setGuestEmail("");
       await fetchData();
     } catch (err) {
-      setAddError("Failed to add invitee: " + err.message);
+      setAddError("Failed to add guest: " + err.message);
     } finally {
       setAddLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Remove this invitee and their RSVP? This cannot be undone."))
+    if (!confirm("Remove this guest and their RSVP? This cannot be undone."))
       return;
     try {
-      const res = await fetch(`/api/invitees?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/guests?id=${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       await fetchData();
@@ -173,7 +176,7 @@ export default function DashboardPage() {
   };
 
   const handleExport = () => {
-    if (invitees.length === 0) return;
+    if (guests.length === 0) return;
 
     try {
       const doc = new jsPDF();
@@ -193,9 +196,9 @@ export default function DashboardPage() {
       doc.text("Guest List & RSVP Summary", 105, 25, { align: "center" });
 
       // Stats Summary
-      const totalAttending = invitees.reduce(
-        (acc, inv) =>
-          acc + (inv.rsvp?.attending ? 1 + (inv.rsvp.guest_count || 0) : 0),
+      const totalAttending = guests.reduce(
+        (acc, g) =>
+          acc + (g.rsvp?.attending ? 1 + (g.rsvp.guest_count || 0) : 0),
         0,
       );
       doc.setFontSize(11);
@@ -214,21 +217,21 @@ export default function DashboardPage() {
         "Guests",
         "Additional Names",
       ];
-      const tableRows = invitees.map((inv) => {
-        const status = !inv.rsvp
+      const tableRows = guests.map((g) => {
+        const status = !g.rsvp
           ? "Pending"
-          : inv.rsvp.attending
+          : g.rsvp.attending
             ? "Accepted"
             : "Declined";
         const additionalGuestNames =
-          inv.rsvp?.additional_guests?.map((g) => g.name).join(", ") || "-";
-        const guestCount = inv.rsvp?.attending ? inv.rsvp.guest_count || 0 : 0;
+          g.rsvp?.additional_guests?.map((ag) => ag.name).join(", ") || "-";
+        const guestCount = g.rsvp?.attending ? g.rsvp.guest_count || 0 : 0;
 
         return [
-          inv.name,
-          inv.email || "-",
+          g.name,
+          g.email || "-",
           status,
-          inv.rsvp?.submitter_name || "-",
+          g.rsvp?.submitter_name || "-",
           guestCount,
           additionalGuestNames,
         ];
@@ -272,7 +275,7 @@ export default function DashboardPage() {
 
   const handleClearList = async () => {
     const warning =
-      "⚠️ WARNING: Do you wish to clear the guest list? \n\nThis will permanently delete ALL invitees, RSVPs, and guest data to start afresh. This cannot be undone.";
+      "⚠️ WARNING: Do you wish to clear the guest list? \n\nThis will permanently delete ALL guests, RSVPs, and data to start afresh. This cannot be undone.";
 
     if (!window.confirm(warning)) return;
 
@@ -287,7 +290,7 @@ export default function DashboardPage() {
       if (data.error) throw new Error(data.error);
 
       // Clear local state and refetch
-      setInvitees([]);
+      setGuests([]);
       await fetchData();
       alert("Guest list has been cleared and you are ready to start afresh.");
     } catch (err) {
@@ -297,14 +300,14 @@ export default function DashboardPage() {
     }
   };
 
-  const filteredInvitees = invitees.filter((inv) => {
+  const filteredGuests = guests.filter((g) => {
     const term = searchTerm.toLowerCase();
-    const nameMatch = inv.name.toLowerCase().includes(term);
+    const nameMatch = g.name.toLowerCase().includes(term);
     const statusMatch =
       filter === "all" ||
-      (filter === "pending" && !inv.rsvp) ||
-      (filter === "accepted" && inv.rsvp?.attending === true) ||
-      (filter === "declined" && inv.rsvp?.attending === false);
+      (filter === "pending" && !g.rsvp) ||
+      (filter === "accepted" && g.rsvp?.attending === true) ||
+      (filter === "declined" && g.rsvp?.attending === false);
     return nameMatch && statusMatch;
   });
 
@@ -375,7 +378,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={handleClearList}
-                disabled={invitees.length === 0 || dataLoading}
+                disabled={guests.length === 0 || dataLoading}
                 className="flex items-center gap-2 border border-rose/30 text-rose hover:bg-rose/10 px-4 py-2 font-sans text-xs tracking-widest uppercase transition-colors disabled:opacity-30"
               >
                 <Trash2 size={14} />
@@ -383,7 +386,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={handleExport}
-                disabled={invitees.length === 0}
+                disabled={guests.length === 0}
                 className="flex items-center gap-2 bg-champagne text-white hover:bg-champagne/90 px-4 py-2 font-sans text-xs tracking-widest uppercase transition-colors shadow-sm disabled:opacity-50"
               >
                 <FileDown size={14} />
@@ -508,21 +511,21 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* ── ADD INVITEE ── */}
+          {/* ── ADD GUEST ── */}
           <div className="lg:col-span-1">
             <div className="bg-ivory border border-blush/30 p-6 shadow-sm mb-6">
               <h2 className="font-display text-xl text-deeprose font-light mb-6 flex items-center gap-2">
                 <Plus size={16} className="text-champagne" />
-                Add Invitee
+                Add Guest
               </h2>
-              <form onSubmit={handleAddInvitee} className="space-y-4">
+              <form onSubmit={handleAddGuest} className="space-y-4">
                 <div>
                   <label className="block font-sans text-xs tracking-widest uppercase text-warmgray mb-2">
-                    Full Name(s) <span className="text-rose">*</span>
+                    Guest Name(s) <span className="text-rose">*</span>
                   </label>
                   <textarea
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
                     placeholder="John Doe, Jane Smith..."
                     className="wedding-input min-h-[80px] py-3"
                   />
@@ -537,8 +540,8 @@ export default function DashboardPage() {
                   </label>
                   <input
                     type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
                     placeholder="guest@email.com"
                     className="wedding-input"
                   />
@@ -644,21 +647,21 @@ export default function DashboardPage() {
                     Loading guests…
                   </p>
                 </div>
-              ) : filteredInvitees.length === 0 ? (
+              ) : filteredGuests.length === 0 ? (
                 <div className="p-10 text-center">
                   <Users size={32} className="text-blush mx-auto mb-3" />
                   <p className="font-display text-xl italic text-warmgray">
-                    {invitees.length === 0
-                      ? "No invitees yet. Add your first guest!"
+                    {guests.length === 0
+                      ? "No guests yet. Add your first guest!"
                       : "No guests match this filter."}
                   </p>
                 </div>
               ) : (
                 <div className="divide-y divide-blush/20">
-                  {filteredInvitees.map((inv) => {
-                    const status = !inv.rsvp
+                  {filteredGuests.map((g) => {
+                    const status = !g.rsvp
                       ? "pending"
-                      : inv.rsvp.attending
+                      : g.rsvp.attending
                         ? "accepted"
                         : "declined";
                     const statusStyles = {
@@ -666,43 +669,42 @@ export default function DashboardPage() {
                       accepted: "bg-green-100 text-green-700",
                       declined: "bg-rose/10 text-rose",
                     };
-                    const isExpanded = expandedId === inv.id;
-                    const totalForInvitee = inv.rsvp?.attending
-                      ? 1 + (inv.rsvp.guest_count || 0)
+                    const isExpanded = expandedId === g.id;
+                    const totalForGuest = g.rsvp?.attending
+                      ? 1 + (g.rsvp.guest_count || 0)
                       : null;
 
                     return (
                       <div
-                        key={inv.id}
+                        key={g.id}
                         className="p-4 hover:bg-cream/50 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-display text-lg text-deeprose font-light">
-                                {inv.name}
+                                {g.name}
                               </p>
                               <span
                                 className={`font-sans text-xs px-2 py-0.5 capitalize ${statusStyles[status]}`}
                               >
                                 {status}
                               </span>
-                              {status === "accepted" && totalForInvitee && (
+                              {status === "accepted" && totalForGuest && (
                                 <span className="font-sans text-xs text-warmgray">
-                                  ({totalForInvitee} total)
+                                  ({totalForGuest} total)
                                 </span>
                               )}
                             </div>
-                            {inv.email && (
+                            {g.email && (
                               <p className="font-sans text-xs text-warmgray mt-0.5 flex items-center gap-1">
                                 <Mail size={10} />
-                                {inv.email}
+                                {g.email}
                               </p>
                             )}
-                            {inv.rsvp && (
+                            {g.rsvp && (
                               <p className="font-sans text-xs text-warmgray mt-0.5">
-                                RSVP&apos;d as:{" "}
-                                <em>{inv.rsvp.submitter_name}</em>
+                                RSVP&apos;d as: <em>{g.rsvp.submitter_name}</em>
                               </p>
                             )}
                           </div>
@@ -711,9 +713,7 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-1 shrink-0">
                             {/* WhatsApp Share */}
                             <button
-                              onClick={() =>
-                                shareViaWhatsApp(inv.token, inv.name)
-                              }
+                              onClick={() => shareViaWhatsApp(g.token, g.name)}
                               title="Share on WhatsApp"
                               className="p-2 text-warmgray hover:text-[#25D366] transition-colors"
                             >
@@ -728,7 +728,7 @@ export default function DashboardPage() {
 
                             {/* Email Share */}
                             <button
-                              onClick={() => shareViaEmail(inv.token, inv.name)}
+                              onClick={() => shareViaEmail(g.token, g.name)}
                               title="Share via Email"
                               className="p-2 text-warmgray hover:text-charcoal transition-colors"
                             >
@@ -737,11 +737,11 @@ export default function DashboardPage() {
 
                             {/* Copy Link */}
                             <button
-                              onClick={() => copyLink(inv.token, inv.id)}
+                              onClick={() => copyLink(g.token, g.id)}
                               title="Copy invite link"
                               className="p-2 text-warmgray hover:text-champagne transition-colors"
                             >
-                              {copiedId === inv.id ? (
+                              {copiedId === g.id ? (
                                 <Check size={14} className="text-green-600" />
                               ) : (
                                 <Link2 size={14} />
@@ -749,11 +749,11 @@ export default function DashboardPage() {
                             </button>
 
                             {/* Expand */}
-                            {(inv.rsvp?.additional_guests?.length > 0 ||
+                            {(g.rsvp?.additional_guests?.length > 0 ||
                               status !== "pending") && (
                               <button
                                 onClick={() =>
-                                  setExpandedId(isExpanded ? null : inv.id)
+                                  setExpandedId(isExpanded ? null : g.id)
                                 }
                                 className="p-2 text-warmgray hover:text-champagne transition-colors"
                               >
@@ -767,8 +767,8 @@ export default function DashboardPage() {
 
                             {/* Delete */}
                             <button
-                              onClick={() => handleDelete(inv.id)}
-                              title="Remove invitee"
+                              onClick={() => handleDelete(g.id)}
+                              title="Remove guest"
                               className="p-2 text-warmgray hover:text-rose transition-colors"
                             >
                               <Trash2 size={14} />
@@ -786,13 +786,13 @@ export default function DashboardPage() {
                               </p>
                               <div className="flex items-center gap-2 bg-cream p-2 border border-blush/20">
                                 <p className="font-sans text-xs text-warmgray truncate flex-1">
-                                  {getInviteLink(inv.token)}
+                                  {getInviteLink(g.token)}
                                 </p>
                                 <button
-                                  onClick={() => copyLink(inv.token, inv.id)}
+                                  onClick={() => copyLink(g.token, g.id)}
                                   className="shrink-0 text-champagne hover:opacity-70"
                                 >
-                                  {copiedId === inv.id ? (
+                                  {copiedId === g.id ? (
                                     <Check size={12} />
                                   ) : (
                                     <Copy size={12} />
@@ -802,26 +802,24 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Additional guests */}
-                            {inv.rsvp?.additional_guests?.length > 0 && (
+                            {g.rsvp?.additional_guests?.length > 0 && (
                               <div>
                                 <p className="font-sans text-xs text-warmgray uppercase tracking-widest mb-2">
                                   Additional Guests (
-                                  {inv.rsvp.additional_guests.length})
+                                  {g.rsvp.additional_guests.length})
                                 </p>
                                 <ul className="space-y-1">
-                                  {inv.rsvp.additional_guests.map(
-                                    (guest, i) => (
-                                      <li
-                                        key={i}
-                                        className="font-sans text-xs text-charcoal flex items-center gap-2"
-                                      >
-                                        <span className="w-4 h-4 bg-champagne/20 flex items-center justify-center text-champagne text-[10px]">
-                                          {i + 1}
-                                        </span>
-                                        {guest.name}
-                                      </li>
-                                    ),
-                                  )}
+                                  {g.rsvp.additional_guests.map((ag, i) => (
+                                    <li
+                                      key={i}
+                                      className="font-sans text-xs text-charcoal flex items-center gap-2"
+                                    >
+                                      <span className="w-4 h-4 bg-champagne/20 flex items-center justify-center text-champagne text-[10px]">
+                                        {i + 1}
+                                      </span>
+                                      {ag.name}
+                                    </li>
+                                  ))}
                                 </ul>
                               </div>
                             )}
@@ -840,11 +838,11 @@ export default function DashboardPage() {
                         {status === "pending" && !isExpanded && (
                           <div className="mt-2">
                             <button
-                              onClick={() => copyLink(inv.token, inv.id)}
+                              onClick={() => copyLink(g.token, g.id)}
                               className="font-sans text-xs text-champagne hover:underline flex items-center gap-1"
                             >
                               <Copy size={10} />
-                              {copiedId === inv.id
+                              {copiedId === g.id
                                 ? "Copied!"
                                 : "Copy invite link to send"}
                             </button>
@@ -857,11 +855,10 @@ export default function DashboardPage() {
               )}
 
               {/* Footer count */}
-              {filteredInvitees.length > 0 && (
+              {filteredGuests.length > 0 && (
                 <div className="p-4 border-t border-blush/20 text-center">
                   <p className="font-sans text-xs text-warmgray">
-                    Showing {filteredInvitees.length} of {invitees.length}{" "}
-                    invitees
+                    Showing {filteredGuests.length} of {guests.length} guests
                   </p>
                 </div>
               )}

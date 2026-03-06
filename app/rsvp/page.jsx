@@ -19,7 +19,7 @@ export default function RSVPPage() {
   const token = searchParams.get("token");
 
   const [step, setStep] = useState("loading"); // loading | invalid | form | success | already_submitted
-  const [invitee, setInvitee] = useState(null);
+  const [guest, setGuest] = useState(null);
   const [attending, setAttending] = useState(null);
   const [submitterName, setSubmitterName] = useState("");
   const [guestCount, setGuestCount] = useState(0);
@@ -36,11 +36,11 @@ export default function RSVPPage() {
       const res = await fetch(`/api/verify-token?token=${token}`);
       const data = await res.json();
       if (data.valid) {
-        setInvitee(data.invitee);
+        setGuest(data.guest);
         if (data.already_submitted) {
           setStep("already_submitted");
         } else {
-          setSubmitterName(data.invitee.name || "");
+          setSubmitterName(data.guest.name || "");
           setStep("form");
         }
       } else {
@@ -137,7 +137,7 @@ export default function RSVPPage() {
           </h1>
           <p className="font-sans text-sm text-warmgray leading-relaxed">
             This invitation link is invalid or has expired. Please use the link
-            sent to you directly, or contact the couple.
+            sent to you directly, or contact the host.
           </p>
         </div>
       </main>
@@ -334,9 +334,9 @@ export default function RSVPPage() {
               Dear Guest
             </p>
             <h1 className="font-display text-3xl md:text-4xl text-deeprose font-light">
-              {invitee?.name ? (
+              {guest?.name ? (
                 <>
-                  Kindly RSVP, <em>{invitee.name}</em>
+                  Kindly RSVP, <em>{guest.name}</em>
                 </>
               ) : (
                 "Kindly RSVP"

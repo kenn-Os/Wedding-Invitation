@@ -19,20 +19,20 @@ function nocache(data, status = 200) {
 
 export async function GET() {
   try {
-    // ── Step 1: Fetch all invitees ──────────────────────────────────────────
-    const { data: invitees, error: inviteesError } = await supabaseAdmin
-      .from("invitees")
+    // ── Step 1: Fetch all guests ──────────────────────────────────────────
+    const { data: guests, error: guestsError } = await supabaseAdmin
+      .from("guests")
       .select("id, name, email, token, created_at")
       .order("created_at", { ascending: true });
 
-    if (inviteesError) {
-      console.error("Fetch invitees error:", inviteesError);
-      return nocache({ error: inviteesError.message }, 500);
+    if (guestsError) {
+      console.error("Fetch guests error:", guestsError);
+      return nocache({ error: guestsError.message }, 500);
     }
 
-    if (!invitees || invitees.length === 0) {
+    if (!guests || guests.length === 0) {
       return nocache({
-        invitees: [],
+        guests: [],
         stats: {
           total: 0,
           accepted: 0,
@@ -43,15 +43,15 @@ export async function GET() {
       });
     }
 
-    // ── Step 2: Fetch all RSVPs for those invitees ──────────────────────────
-    const inviteeIds = invitees.map((i) => i.id);
+    // ── Step 2: Fetch all RSVPs for those guests ──────────────────────────
+    const guestIds = guests.map((i) => i.id);
 
     const { data: rsvps, error: rsvpsError } = await supabaseAdmin
       .from("rsvps")
       .select(
-        "id, invitee_id, submitter_name, attending, guest_count, created_at",
+        "id, guest_id, submitter_name, attending, guest_count, created_at",
       )
-      .in("invitee_id", inviteeIds);
+      .in("guest_id", guestIds);
 
     if (rsvpsError) {
       console.error("Fetch rsvps error:", rsvpsError);
@@ -63,104 +63,148 @@ export async function GET() {
 
     let additionalGuests = [];
     if (rsvpIds.length > 0) {
-      const { data: guests, error: guestsError } = await supabaseAdmin
+      const { data: extraGuests, error: extraGuestsError } = await supabaseAdmin
         .from("additional_guests")
         .select("id, rsvp_id, name")
         .in("rsvp_id", rsvpIds);
 
-      if (guestsError) {
-        console.error("Fetch additional_guests error:", guestsError);
-        // Non-fatal — continue without additional guest names
+      if (extraGuestsError) {
+        console.error("Fetch additional_guests error:", extraGuestsError);
       } else {
-        additionalGuests = guests || [];
+        additionalGuests = extraGuests || [];
       }
     }
 
     // ── Step 4: Join everything together in JavaScript ──────────────────────
 
     // Map rsvp_id → additional guests
-    const guestsByRsvpId = additionalGuests.reduce((acc, guest) => {
+    const extraByRsvpId = additionalGuests.reduce((acc, guest) => {
       if (!acc[guest.rsvp_id]) acc[guest.rsvp_id] = [];
       acc[guest.rsvp_id].push({ id: guest.id, name: guest.name });
       return acc;
     }, {});
 
-    // Map invitee_id → rsvp (with additional guests attached)
-    const rsvpByInviteeId = (rsvps || []).reduce((acc, rsvp) => {
-      acc[rsvp.invitee_id] = {
+    // Map guest_id → rsvp
+    const rsvpByGuestId = (rsvps || []).reduce((acc, rsvp) => {
+      acc[rsvp.guest_id] = {
         ...rsvp,
-        additional_guests: guestsByRsvpId[rsvp.id] || [],
+        additional_guests: extraByRsvpId[rsvp.id] || [],
       };
       return acc;
     }, {});
 
-    // Attach rsvp to each invitee
-    const processed = invitees.map((inv) => ({
-      ...inv,
-      rsvp: rsvpByInviteeId[inv.id] || null,
+    // Attach rsvp to each guest
+    const processed = guests.map((g) => ({
+      ...g,
+      rsvp: rsvpByGuestId[g.id] || null,
     }));
 
     // ── Step 5: Calculate stats ─────────────────────────────────────────────
     const total = processed.length;
-    const accepted = processed.filter((i) => i.rsvp?.attending === true).length;
+    const accepted = processed.filter((g) => g.rsvp?.attending === true).length;
     const declined = processed.filter(
-      (i) => i.rsvp?.attending === false,
+      (g) => g.rsvp?.attending === false,
     ).length;
-    const pending = processed.filter((i) => !i.rsvp).length;
+    const pending = processed.filter((g) => !g.rsvp).length;
 
-    const totalGuests = processed.reduce((sum, inv) => {
-      if (inv.rsvp?.attending === true) {
-        return sum + 1 + (inv.rsvp.guest_count || 0);
+    const totalGuests = processed.reduce((sum, g) => {
+      if (g.rsvp?.attending === true) {
+        return sum + 1 + (g.rsvp.guest_count || 0);
       }
       return sum;
     }, 0);
 
     return nocache({
-      invitees: processed,
+      guests: processed,
       stats: { total, accepted, declined, pending, totalGuests },
     });
   } catch (err) {
-    console.error("Guests API error:", err);
+    console.error("Guests GET error:", err);
     return nocache({ error: "Server error" }, 500);
   }
 }
 
-// Bulk delete all guests (Invitees, RSVPs, Additional Guests)
-export async function DELETE() {
+// Add guest(s) — supports batch via comma-separated names
+export async function POST(request) {
   try {
+    const { name, email } = await request.json();
+
+    if (!name || !name.trim()) {
+      return nocache({ error: "Name is required" }, 400);
+    }
+
+    const names = name
+      .split(",")
+      .map((n) => n.trim())
+      .filter((n) => n !== "");
+    if (names.length === 0) {
+      return nocache({ error: "Valid name(s) required" }, 400);
+    }
+
+    const guestsToInsert = names.map((n) => ({
+      name: n,
+      email: email?.trim() || null,
+      token: require("uuid").v4(),
+    }));
+
+    const { data, error } = await supabaseAdmin
+      .from("guests")
+      .insert(guestsToInsert)
+      .select();
+
+    if (error) throw error;
+
+    return nocache({ success: true, guests: data });
+  } catch (err) {
+    console.error("Guests POST error:", err);
+    return nocache({ error: err.message }, 500);
+  }
+}
+
+// Bulk delete or Single delete
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    // Single guest delete
+    if (id) {
+      const { error } = await supabaseAdmin
+        .from("guests")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return nocache({ success: true });
+    }
+
+    // Bulk delete all guests
     // 1. Delete all additional guests
-    const { error: guestsError } = await supabaseAdmin
+    await supabaseAdmin
       .from("additional_guests")
       .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
-
-    if (guestsError) throw guestsError;
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     // 2. Delete all RSVPs
-    const { error: rsvpsError } = await supabaseAdmin
+    await supabaseAdmin
       .from("rsvps")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
 
-    if (rsvpsError) throw rsvpsError;
-
-    // 3. Delete all invitees
-    const { error: inviteesError } = await supabaseAdmin
-      .from("invitees")
+    // 3. Delete all guests
+    const { error: guestsError } = await supabaseAdmin
+      .from("guests")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
 
-    if (inviteesError) throw inviteesError;
+    if (guestsError) throw guestsError;
 
     return nocache({
       success: true,
       message: "All guest data cleared successfully",
     });
   } catch (err) {
-    console.error("Bulk delete error:", err);
-    return nocache(
-      { error: "Failed to clear guest list: " + err.message },
-      500,
-    );
+    console.error("Guests DELETE error:", err);
+    return nocache({ error: err.message }, 500);
   }
 }
