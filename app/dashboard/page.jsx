@@ -24,6 +24,8 @@ import {
   Search,
   Link2,
   FileDown,
+  Lock,
+  X,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -306,6 +308,38 @@ export default function DashboardPage() {
     return nameMatch && statusMatch;
   });
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 4) {
+      setPasswordError("Password must be at least 4 characters.");
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError("");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      alert("Password updated successfully!");
+      setShowPasswordModal(false);
+      setNewPassword("");
+    } catch (err) {
+      setPasswordError("Failed to update password: " + err.message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const handleSignOut = () => {
     sessionStorage.removeItem("weddingDashboardAuth");
     router.push("/");
@@ -332,6 +366,13 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="flex items-center gap-2 border border-white/20 text-white/70 hover:text-white px-4 py-2 font-sans text-xs tracking-widest uppercase transition-colors"
+              >
+                <Lock size={12} />
+                Change Password
+              </button>
               <button
                 onClick={handleClearList}
                 disabled={invitees.length === 0 || dataLoading}
@@ -369,6 +410,52 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-charcoal/60 backdrop-blur-sm"
+            onClick={() => setShowPasswordModal(false)}
+          />
+          <div className="relative bg-white w-full max-w-md p-10 border border-blush/40 shadow-2xl">
+            <button
+              onClick={() => setShowPasswordModal(false)}
+              className="absolute top-4 right-4 text-warmgray hover:text-deeprose"
+            >
+              <X size={18} />
+            </button>
+            <div className="text-center mb-8">
+              <h2 className="font-display text-2xl text-deeprose font-light mb-2">
+                Change Password
+              </h2>
+              <p className="text-sm text-warmgray">
+                Enter a new password for the dashboard.
+              </p>
+            </div>
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <input
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New Password"
+                className="wedding-input w-full p-3 border border-blush/20"
+                autoFocus
+              />
+              {passwordError && (
+                <p className="text-rose text-xs text-center">{passwordError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={passwordLoading}
+                className="btn-primary w-full py-3 bg-deeprose text-white disabled:opacity-50"
+              >
+                {passwordLoading ? "Updating..." : "Update Password"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-6 md:px-10 py-10">
         {/* ── STATS ── */}
