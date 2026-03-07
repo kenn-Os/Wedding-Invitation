@@ -228,6 +228,55 @@ export default function DashboardPage() {
     document.body.removeChild(downloadLink);
   };
 
+  const downloadPDF = (guestName) => {
+    const qrCanvas = document.getElementById("qr-code-canvas");
+    if (!qrCanvas) return;
+
+    // A6 size card (105 x 148 mm)
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a6",
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // 1. Draw Background (White)
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // 2. Draw Header (Guest Name)
+    doc.setTextColor(214, 77, 101); // deeprose
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text(guestName, pageWidth / 2, 25, { align: "center" });
+
+    // 3. Draw QR Code (Centered)
+    const qrImage = qrCanvas.toDataURL("image/png");
+    const qrSize = 60;
+    doc.addImage(qrImage, "PNG", (pageWidth - qrSize) / 2, 40, qrSize, qrSize);
+
+    // 4. Draw Footer (RSVP Text)
+    doc.setTextColor(110, 105, 106); // warmgray
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "italic");
+    doc.text("Scan the code to RSVP", pageWidth / 2, 115, { align: "center" });
+
+    // 5. Couple names at the bottom
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `${WEDDING_DATA.couple.person1} & ${WEDDING_DATA.couple.person2}`,
+      pageWidth / 2,
+      135,
+      { align: "center" },
+    );
+
+    // Save PDF
+    doc.save(`${guestName.replace(/\s+/g, "_")}_QR_Invitation.pdf`);
+  };
+
   const handleExport = () => {
     if (guests.length === 0) return;
 
@@ -545,13 +594,22 @@ export default function DashboardPage() {
                 Scan the code to RSVP
               </p>
             </div>
-            <button
-              onClick={() => downloadQRCode(qrGuest.name)}
-              className="btn-primary w-full flex items-center justify-center gap-2"
-            >
-              <FileDown size={14} />
-              Download PNG
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => downloadQRCode(qrGuest.name)}
+                className="btn-primary flex items-center justify-center gap-2 py-3"
+              >
+                <FileDown size={14} />
+                PNG Image
+              </button>
+              <button
+                onClick={() => downloadPDF(qrGuest.name)}
+                className="flex items-center justify-center gap-2 border border-deeprose text-deeprose hover:bg-deeprose/5 transition-colors font-sans text-[10px] tracking-widest uppercase"
+              >
+                <FileDown size={14} />
+                PDF Document
+              </button>
+            </div>
           </div>
         </div>
       )}
