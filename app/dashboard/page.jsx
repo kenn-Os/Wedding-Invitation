@@ -26,9 +26,11 @@ import {
   FileDown,
   Lock,
   X,
+  QrCode,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { QRCodeCanvas } from "qrcode.react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -59,6 +61,7 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all"); // all | accepted | declined | pending
   const [refreshing, setRefreshing] = useState(false);
+  const [qrGuest, setQrGuest] = useState(null);
 
   useEffect(() => {
     const auth = sessionStorage.getItem("weddingDashboardAuth");
@@ -173,6 +176,56 @@ export default function DashboardPage() {
       `Hi ${name},\n\nYou are cordially invited to our wedding! Please RSVP using the link below:\n\n${link}\n\nWe look forward to celebrating with you!`,
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const downloadQRCode = (guestName) => {
+    const qrCanvas = document.getElementById("qr-code-canvas");
+    if (!qrCanvas) return;
+
+    // Create a new temporary canvas for the final design
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Set dimensions (QR size + padding for text)
+    const padding = 40;
+    const headerHeight = 60;
+    const footerHeight = 40;
+    canvas.width = qrCanvas.width + padding * 2;
+    canvas.height = qrCanvas.height + headerHeight + footerHeight + padding;
+
+    // 1. Draw Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Draw Guest Name (Header)
+    ctx.fillStyle = "#d64d65"; // deeprose
+    ctx.font = "bold 24px 'Playfair Display', serif";
+    ctx.textAlign = "center";
+    ctx.fillText(guestName, canvas.width / 2, padding + 20);
+
+    // 3. Draw QR Code (Middle)
+    ctx.drawImage(qrCanvas, padding, headerHeight + padding / 2);
+
+    // 4. Draw RSVP Text (Footer)
+    ctx.fillStyle = "#6e696a"; // warmgray
+    ctx.font = "italic 16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "Scan the code to RSVP",
+      canvas.width / 2,
+      canvas.height - padding / 2
+    );
+
+    // 5. Download
+    const pngUrl = canvas
+      .toDataURL("image/png")
+      .replace("image/png", "image/octet-stream");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `${guestName.replace(/\s+/g, "_")}_QR_Code.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
   };
 
   const handleExport = () => {
@@ -456,6 +509,49 @@ export default function DashboardPage() {
                 {passwordLoading ? "Updating..." : "Update Password"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {qrGuest && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-charcoal/60 backdrop-blur-sm"
+            onClick={() => setQrGuest(null)}
+          />
+          <div className="relative bg-white w-full max-w-sm p-10 border border-blush/40 shadow-2xl text-center">
+            <button
+              onClick={() => setQrGuest(null)}
+              className="absolute top-4 right-4 text-warmgray hover:text-deeprose"
+            >
+              <X size={18} />
+            </button>
+            <div className="mb-6">
+              <h2 className="font-display text-2xl text-deeprose font-light mb-2">
+                QR Code
+              </h2>
+              <p className="text-sm text-warmgray">{qrGuest.name}</p>
+            </div>
+            <div className="flex flex-col items-center bg-white p-4 border border-blush/10 rounded-lg mb-8 shadow-inner">
+              <QRCodeCanvas
+                id="qr-code-canvas"
+                value={getInviteLink(qrGuest.token)}
+                size={200}
+                level={"H"}
+                includeMargin={true}
+              />
+              <p className="font-sans text-xs text-warmgray mt-2 italic">
+                Scan the code to RSVP
+              </p>
+            </div>
+            <button
+              onClick={() => downloadQRCode(qrGuest.name)}
+              className="btn-primary w-full flex items-center justify-center gap-2"
+            >
+              <FileDown size={14} />
+              Download PNG
+            </button>
           </div>
         </div>
       )}
@@ -746,6 +842,15 @@ export default function DashboardPage() {
                               ) : (
                                 <Link2 size={14} />
                               )}
+                            </button>
+
+                            {/* QR Code */}
+                            <button
+                              onClick={() => setQrGuest(g)}
+                              title="View QR Code"
+                              className="p-2 text-warmgray hover:text-deeprose transition-colors"
+                            >
+                              <QrCode size={14} />
                             </button>
 
                             {/* Expand */}
