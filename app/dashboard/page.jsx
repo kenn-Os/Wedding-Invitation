@@ -185,7 +185,7 @@ export default function DashboardPage() {
     // Create a new temporary canvas for the final design
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    
+
     // Set dimensions (QR size + padding for text)
     const padding = 40;
     const headerHeight = 60;
